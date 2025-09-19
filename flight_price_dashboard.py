@@ -6,26 +6,27 @@ import datetime
 import os
 
 # -----------------------------
-# Recombine model parts if needed
+# Step 1: Load model and columns
 # -----------------------------
-model_file = "best_flight_price_model.pkl"
+model_file = "best_model_compressed.pkl"
+columns_file = "model_training_columns.pkl"
 
-if not os.path.exists(model_file):  # Only rebuild if combined file not present
-    with open(model_file, "wb") as outfile:
-        for part in ["best_flight_price_model.pkl_part1", "best_flight_price_model.pkl_part2"]:
-            with open(part, "rb") as infile:
-                outfile.write(infile.read())
+if not os.path.exists(model_file) or not os.path.exists(columns_file):
+    st.error("Model file or columns file is missing!")
+    st.stop()
+
+try:
+    model = joblib.load(model_file)
+    model_columns = joblib.load(columns_file)
+    st.success("Model loaded successfully!")
+except Exception as e:
+    st.error(f"Error loading model: {e}")
+    st.stop()
 
 # -----------------------------
-# Load model + training columns
+# Mapping for stops and departure times
 # -----------------------------
-model = joblib.load(model_file)
-model_columns = joblib.load("model_training_columns.pkl")
-
-# Stops mapping
 stops_mapping = {"0": 0, "1": 1, "2": 2}
-
-# Timing categories mapping (used during training)
 time_mapping = {
     "Early_Morning": 5,
     "Morning": 9,
@@ -35,7 +36,9 @@ time_mapping = {
     "Late_Night": 0
 }
 
+# -----------------------------
 # Prediction function
+# -----------------------------
 def predict_price(flight_details):
     df = pd.DataFrame([flight_details])
     df.drop(columns=["flight", "airline"], inplace=True, errors="ignore")
@@ -51,67 +54,34 @@ def predict_price(flight_details):
 # -----------------------------
 st.set_page_config(page_title="Indigo Flight Price Predictor", page_icon="✈️", layout="wide")
 
-# Custom CSS for uniform input and colors
 st.markdown(
     """
     <style>
-    .main {
-        background: linear-gradient(to right, #e0f7fa, #ffffff);
-        padding: 2rem;
-    }
-    .stButton button {
-        background-color: #1976d2;
-        color: white;
-        font-weight: bold;
-        border-radius: 10px;
-        padding: 0.6rem 1.2rem;
-    }
-    .stButton button:hover {
-        background-color: #1565c0;
-    }
-    .price-box {
-        background-color: #e3f2fd;
-        padding: 20px;
-        border-radius: 15px;
-        text-align: center;
-        font-size: 1.3rem;
-        font-weight: bold;
-        color: #0d47a1;
-        box-shadow: 0px 4px 10px rgba(0,0,0,0.1);
-    }
-    input, select {
-        font-size: 1rem;
-        color: #0d47a1;
-        padding: 0.5rem;
-        border-radius: 4px;
-        border: 1px solid #ccc;
-        width: 100%;
-    }
+    .main {background: linear-gradient(to right, #e0f7fa, #ffffff); padding: 2rem;}
+    .stButton button {background-color: #1976d2; color: white; font-weight: bold; border-radius: 10px; padding: 0.6rem 1.2rem;}
+    .stButton button:hover {background-color: #1565c0;}
+    .price-box {background-color: #e3f2fd; padding: 20px; border-radius: 15px; text-align: center; font-size: 1.3rem; font-weight: bold; color: #0d47a1; box-shadow: 0px 4px 10px rgba(0,0,0,0.1);}
+    input, select {font-size: 1rem; color: #0d47a1; padding: 0.5rem; border-radius: 4px; border: 1px solid #ccc; width: 100%;}
     </style>
     """,
     unsafe_allow_html=True
 )
 
-# Header
-st.markdown(
-    "<h1 style='color:#0d47a1;'>✈️ Indigo Flight Price Prediction</h1>",
-    unsafe_allow_html=True
-)
+st.markdown("<h1 style='color:#0d47a1;'>✈️ Indigo Flight Price Prediction</h1>", unsafe_allow_html=True)
 st.markdown("### Plan Better. Travel Easier. 💡")
 
 # -----------------------------
-# Input Section
+# Input section
 # -----------------------------
 with st.container():
     st.subheader("Enter Flight Details")
     col1, col2 = st.columns(2)
 
     with col1:
-        source_city = st.selectbox(
-            "Source City", ["Delhi", "Mumbai", "Bangalore", "Kolkata", "Hyderabad", "Chennai"]
-        )
+        source_city = st.selectbox("Source City", ["Delhi", "Mumbai", "Bangalore", "Kolkata", "Hyderabad", "Chennai"])
         destination_city = st.selectbox(
-            "Destination City", [c for c in ["Delhi", "Mumbai", "Bangalore", "Kolkata", "Hyderabad", "Chennai"] if c != source_city]
+            "Destination City",
+            [c for c in ["Delhi", "Mumbai", "Bangalore", "Kolkata", "Hyderabad", "Chennai"] if c != source_city]
         )
         travel_date = st.date_input(
             "Travel Date",
@@ -145,8 +115,6 @@ if st.button("🚀 Predict Price"):
     }
 
     price = predict_price(details)
-
-    # Calculate ±5% range
     lower = int(round(price * 0.95))
     upper = int(round(price * 1.05))
 
