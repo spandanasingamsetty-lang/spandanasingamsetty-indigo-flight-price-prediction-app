@@ -18,7 +18,6 @@ if not os.path.exists(model_file) or not os.path.exists(columns_file):
 try:
     model = joblib.load(model_file)
     model_columns = joblib.load(columns_file)
-    st.success("Model loaded successfully!")
 except Exception as e:
     st.error(f"Error loading model: {e}")
     st.stop()
