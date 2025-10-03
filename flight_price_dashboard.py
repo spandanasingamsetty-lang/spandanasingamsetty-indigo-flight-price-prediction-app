@@ -23,7 +23,7 @@ except Exception as e:
     st.stop()
 
 # -----------------------------
-# Mapping for stops and departure times
+# Mapping for stops and times
 # -----------------------------
 stops_mapping = {"0": 0, "1": 1, "2": 2}
 time_mapping = {
@@ -42,6 +42,11 @@ def predict_price(flight_details):
     df = pd.DataFrame([flight_details])
     df.drop(columns=["flight", "airline"], inplace=True, errors="ignore")
     df["stops"] = df["stops"].map(stops_mapping)
+    
+    # ✅ Cap unrealistic durations (2–8 hrs only)
+    if "duration" in df.columns:
+        df["duration"] = df["duration"].clip(lower=2.0, upper=8.0)
+
     df_encoded = pd.get_dummies(df)
     df_aligned = df_encoded.reindex(columns=model_columns, fill_value=0)
     pred_log = model.predict(df_aligned)
@@ -88,28 +93,26 @@ with st.container():
             max_value=datetime.date.today() + datetime.timedelta(days=180),
             value=datetime.date.today() + datetime.timedelta(days=30)
         )
+        days_left = (travel_date - datetime.date.today()).days
 
     with col2:
         departure_time = st.selectbox("Departure Time", list(time_mapping.keys()))
+        arrival_time = st.selectbox("Arrival Time", list(time_mapping.keys()))
         stops = st.selectbox("Stops (0=Non-stop)", ["0", "1", "2"])
-        days_left = (travel_date - datetime.date.today()).days
-        st.markdown(
-            f'<label style="font-weight:500; color:#0d47a1;">Days Before Departure</label>'
-            f'<input type="text" value="{days_left}" readonly style="color:#0d47a1;">',
-            unsafe_allow_html=True
-        )
-
-st.markdown("---")
+        duration = st.number_input("Flight Duration (hrs)", min_value=2.0, max_value=8.0, step=0.1, value=2.5)
 
 # -----------------------------
 # Predict button and output
 # -----------------------------
+st.markdown("---")
 if st.button("🚀 Predict Price"):
     details = {
         "source_city": source_city,
         "destination_city": destination_city,
         "departure_time": departure_time,
+        "arrival_time": arrival_time,
         "stops": stops,
+        "duration": duration,
         "days_left": days_left
     }
 
@@ -127,7 +130,7 @@ if st.button("🚀 Predict Price"):
         unsafe_allow_html=True
     )
 else:
-    st.info("Select travel date and other details, then click **Predict Price** to see the fare.")
+    st.info("Fill in the details and click **Predict Price** to see the fare.")
 
 st.markdown("---")
 st.caption("💡 Powered by RandomForest model trained on Indigo flight dataset")
