@@ -94,15 +94,29 @@ with st.container():
             value=datetime.date.today() + datetime.timedelta(days=30)
         )
         
-        # Calculate days left and display dynamically
+        # Calculate Days Left
         days_left = (travel_date - datetime.date.today()).days
-        st.info(f"🗓️ Days Left until travel: {days_left} day{'s' if days_left != 1 else ''}")
+        
+        # Display Days Left as text (same font size as other inputs)
+        st.markdown(
+            f"<p style='font-size:1rem; color:#0d47a1; margin-top:10px;'>Days Left until travel: {days_left} day{'s' if days_left != 1 else ''}</p>",
+            unsafe_allow_html=True
+        )
 
     with col2:
         departure_time = st.selectbox("Departure Time", list(time_mapping.keys()))
-        arrival_time = st.selectbox("Arrival Time", list(time_mapping.keys()))
         stops = st.selectbox("Stops (0=Non-stop)", ["0", "1", "2"])
         duration = st.number_input("Flight Duration (hrs)", min_value=2.0, max_value=8.0, step=0.1, value=2.5)
+        
+        # Automatically calculate arrival time based on departure + duration
+        dep_hour = time_mapping[departure_time]
+        arr_hour = (dep_hour + duration) % 24  # handle next day
+        # Find closest arrival slot
+        closest_arrival = min(time_mapping.keys(), key=lambda k: abs(time_mapping[k] - arr_hour))
+        st.markdown(
+            f"<p style='font-size:1rem; color:#0d47a1; margin-top:10px;'>Estimated Arrival Time: {closest_arrival}</p>",
+            unsafe_allow_html=True
+        )
 
 # -----------------------------
 # Predict button and output
@@ -113,10 +127,10 @@ if st.button("🚀 Predict Price"):
         "source_city": source_city,
         "destination_city": destination_city,
         "departure_time": departure_time,
-        "arrival_time": arrival_time,
+        "arrival_time": closest_arrival,  # automatic arrival time
         "stops": stops,
         "duration": duration,
-        "days_left": days_left
+        "days_left": days_left  # numeric for model
     }
 
     price = predict_price(details)
@@ -128,7 +142,8 @@ if st.button("🚀 Predict Price"):
         <div class="price-box">
             ✈️ Estimated Indigo Economy Price: ₹{price:,} <br>
             🔹 Price Range: ₹{lower:,} – ₹{upper:,} <br>
-            🗓️ Days Left until travel: {days_left} day{'s' if days_left != 1 else ''}
+            🗓️ Days Left until travel: {days_left} day{'s' if days_left != 1 else ''} <br>
+            🕒 Estimated Arrival Time: {closest_arrival}
         </div>
         """,
         unsafe_allow_html=True
