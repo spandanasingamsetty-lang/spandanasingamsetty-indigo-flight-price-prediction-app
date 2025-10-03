@@ -97,10 +97,11 @@ with st.container():
         # Calculate Days Left
         days_left = (travel_date - datetime.date.today()).days
         
-        # Display Days Left as text (same font size as other inputs)
-        st.markdown(
-            f"<p style='font-size:1rem; color:#0d47a1; margin-top:10px;'>Days Left until travel: {days_left} day{'s' if days_left != 1 else ''}</p>",
-            unsafe_allow_html=True
+        # Display Days Left as disabled input
+        st.text_input(
+            "Days Left until travel",
+            value=f"{days_left} day{'s' if days_left != 1 else ''}",
+            disabled=True
         )
 
     with col2:
@@ -113,9 +114,12 @@ with st.container():
         arr_hour = (dep_hour + duration) % 24  # handle next day
         # Find closest arrival slot
         closest_arrival = min(time_mapping.keys(), key=lambda k: abs(time_mapping[k] - arr_hour))
-        st.markdown(
-            f"<p style='font-size:1rem; color:#0d47a1; margin-top:10px;'>Estimated Arrival Time: {closest_arrival}</p>",
-            unsafe_allow_html=True
+        
+        # Display Estimated Arrival Time as disabled input
+        st.text_input(
+            "Estimated Arrival Time",
+            value=closest_arrival,
+            disabled=True
         )
 
 # -----------------------------
