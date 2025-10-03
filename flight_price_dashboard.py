@@ -43,7 +43,7 @@ def predict_price(flight_details):
     df.drop(columns=["flight", "airline"], inplace=True, errors="ignore")
     df["stops"] = df["stops"].map(stops_mapping)
     
-    # ✅ Cap unrealistic durations (2–8 hrs only)
+    # Cap unrealistic durations (2–8 hrs only)
     if "duration" in df.columns:
         df["duration"] = df["duration"].clip(lower=2.0, upper=8.0)
 
@@ -94,6 +94,8 @@ with st.container():
             value=datetime.date.today() + datetime.timedelta(days=30)
         )
         days_left = (travel_date - datetime.date.today()).days
+        # Display Days Left dynamically
+        st.metric(label="Days Left until Travel", value=days_left)
 
     with col2:
         departure_time = st.selectbox("Departure Time", list(time_mapping.keys()))
